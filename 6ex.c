@@ -1,98 +1,106 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include <string.h>
 
 #define MAX_RULES 10
-#define MAX_SYMBOLS 10
+#define MAX_FIRST 10
+#define MAX_FOLLOW 10
 
-struct Rule {
-    char nonTerminal;
-    char production[10];
-};
+typedef struct {
+    char lhs;
+    char rhs[10];
+} ProductionRule;
 
-struct Rule rules[MAX_RULES];
-int numRules;
+ProductionRule rules[MAX_RULES];
+int numRules = 0;
 
-struct Symbol {
-    char symbol;
-    bool isTerminal;
-};
+char firstSets[MAX_FIRST][MAX_FIRST];
+char followSets[MAX_FOLLOW][MAX_FIRST];
 
-struct Symbol firstSets[MAX_SYMBOLS][MAX_SYMBOLS];
-struct Symbol followSets[MAX_SYMBOLS][MAX_SYMBOLS];
+void addRule(char lhs, const char* rhs) {
+    rules[numRules].lhs = lhs;
+    strcpy(rules[numRules].rhs, rhs);
+    numRules++;
+}
 
-int numFirstSets[MAX_SYMBOLS];
-int numFollowSets[MAX_SYMBOLS];
+bool isTerminal(char symbol) {
+    return islower(symbol) || symbol == '$'; // Assuming '$' represents epsilon
+}
 
-int findIndex(char c) {
+void computeFirstSet(char nonTerminal) {
     for (int i = 0; i < numRules; ++i) {
-        if (rules[i].nonTerminal == c) {
-            return i;
+        if (rules[i].lhs == nonTerminal) {
+            if (isTerminal(rules[i].rhs[0])) {
+                firstSets[nonTerminal - 'A'][rules[i].rhs[0] - 'a'] = 1;
+            } else {
+                computeFirstSet(rules[i].rhs[0]);
+            }
         }
     }
-    return -1;
 }
 
-void addToFirstSet(char nonTerminal, char terminal) {
-    int index = findIndex(nonTerminal);
-    int i;
-    for (i = 0; i < numFirstSets[index]; ++i) {
-        if (firstSets[index][i].symbol == terminal) {
-            break;
+void computeFollowSet(char nonTerminal) {
+    for (int i = 0; i < numRules; ++i) {
+        int len = strlen(rules[i].rhs);
+        for (int j = 0; j < len; ++j) {
+            if (rules[i].rhs[j] == nonTerminal) {
+                if (j < len - 1 && isTerminal(rules[i].rhs[j + 1])) {
+                    followSets[nonTerminal - 'A'][rules[i].rhs[j + 1] - 'a'] = 1;
+                } else if (j == len - 1) {
+                    computeFollowSet(rules[i].lhs);
+                } else {
+                    int k = j + 1;
+                    while (k < len && !isTerminal(rules[i].rhs[k])) {
+                        computeFirstSet(rules[i].rhs[k]);
+                        k++;
+                    }
+                }
+            }
         }
     }
-    if (i == numFirstSets[index]) {
-        firstSets[index][i].symbol = terminal;
-        firstSets[index][i].isTerminal = true;
-        numFirstSets[index]++;
-    }
-}
-
-void addToFollowSet(char nonTerminal, char terminal) {
-    int index = findIndex(nonTerminal);
-    int i;
-    for (i = 0; i < numFollowSets[index]; ++i) {
-        if (followSets[index][i].symbol == terminal) {
-            break;
-        }
-    }
-    if (i == numFollowSets[index]) {
-        followSets[index][i].symbol = terminal;
-        followSets[index][i].isTerminal = true;
-        numFollowSets[index]++;
-    }
-}
-
-void computeFirstSet() {
-    // Your logic to compute First sets goes here
-    // Iterate through the grammar rules and compute First sets for each non-terminal symbol
-    // Update the firstSets array accordingly
-}
-
-void computeFollowSet() {
-    // Your logic to compute Follow sets goes here
-    // Iterate through the grammar rules and compute Follow sets for each non-terminal symbol
-    // Update the followSets array accordingly
 }
 
 int main() {
-    printf("Enter the number of rules: ");
-    scanf("%d", &numRules);
+    addRule('S', "AB");
+    addRule('A', "aB");
+    addRule('A', "");
+    addRule('B', "b");
 
-    printf("Enter the grammar rules (format: S->abc): \n");
-    for (int i = 0; i < numRules; ++i) {
-        scanf(" %c->%s", &rules[i].nonTerminal, rules[i].production);
+    computeFirstSet('A');
+    computeFirstSet('B');
+    computeFollowSet('S');
+    computeFollowSet('A');
+    computeFollowSet('B');
+
+    // Displaying the First and Follow sets
+    printf("First Sets:\n");
+    for (int i = 0; i < 2; ++i) {
+        printf("First(%c) = { ", 'A' + i);
+        for (int j = 0; j < 26; ++j) {
+            if (firstSets[i][j]) {
+                printf("%c ", 'a' + j);
+            }
+        }
+        printf("}\n");
     }
 
-    // Initialize First and Follow sets
-    memset(numFirstSets, 0, sizeof(numFirstSets));
-    memset(numFollowSets, 0, sizeof(numFollowSets));
+    printf("\nFollow Sets:\n");
+    printf("Follow(S) = { $ ");
+    for (int j = 0; j < 26; ++j) {
+        if (followSets[0][j]) {
+            printf("%c ", 'a' + j);
+        }
+    }
+    printf("}\n");
 
-    computeFirstSet();
-    computeFollowSet();
-
-    // Display First and Follow sets
-    // Display logic goes here
+    printf("Follow(A) = { $ ");
+    for (int j = 0; j < 26; ++j) {
+        if (followSets[1][j]) {
+            printf("%c ", 'a' + j);
+        }
+    }
+    printf("}\n");
 
     return 0;
 }
