@@ -1,39 +1,98 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
-int main()
-{
-    char gram[20], part1[20], part2[20], modifiedGram[20], newGram[20], tempGram[20];
-    int i, j = 0, k = 0, l = 0, pos;
-    printf("Enter Production : A->");
-    gets(gram);
-    for (i = 0; gram[i] != '|'; i++, j++)
-        part1[j] = gram[i];
-    part1[j] = '\0';
-    for (j = ++i, i = 0; gram[j] != '\0'; j++, i++)
-        part2[i] = gram[j];
-    part2[i] = '\0';
-    for (i = 0; i < strlen(part1) || i < strlen(part2); i++)
-    {
-        if (part1[i] == part2[i])
-        {
-            modifiedGram[k] = part1[i];
-            k++;
-            pos = i + 1;
+
+#define MAX_RULES 10
+#define MAX_SYMBOLS 10
+
+struct Rule {
+    char nonTerminal;
+    char production[10];
+};
+
+struct Rule rules[MAX_RULES];
+int numRules;
+
+struct Symbol {
+    char symbol;
+    bool isTerminal;
+};
+
+struct Symbol firstSets[MAX_SYMBOLS][MAX_SYMBOLS];
+struct Symbol followSets[MAX_SYMBOLS][MAX_SYMBOLS];
+
+int numFirstSets[MAX_SYMBOLS];
+int numFollowSets[MAX_SYMBOLS];
+
+int findIndex(char c) {
+    for (int i = 0; i < numRules; ++i) {
+        if (rules[i].nonTerminal == c) {
+            return i;
         }
     }
-    for (i = pos, j = 0; part1[i] != '\0'; i++, j++)
-    {
-        newGram[j] = part1[i];
+    return -1;
+}
+
+void addToFirstSet(char nonTerminal, char terminal) {
+    int index = findIndex(nonTerminal);
+    int i;
+    for (i = 0; i < numFirstSets[index]; ++i) {
+        if (firstSets[index][i].symbol == terminal) {
+            break;
+        }
     }
-    newGram[j++] = '|';
-    for (i = pos; part2[i] != '\0'; i++, j++)
-    {
-        newGram[j] = part2[i];
+    if (i == numFirstSets[index]) {
+        firstSets[index][i].symbol = terminal;
+        firstSets[index][i].isTerminal = true;
+        numFirstSets[index]++;
     }
-    modifiedGram[k] = 'X';
-    modifiedGram[++k] = '\0';
-    newGram[j] = '\0';
-    printf("\nGrammar Without Left Factoring : : \n");
-    printf(" A->%s", modifiedGram);
-    printf("\n X->%s\n", newGram);
+}
+
+void addToFollowSet(char nonTerminal, char terminal) {
+    int index = findIndex(nonTerminal);
+    int i;
+    for (i = 0; i < numFollowSets[index]; ++i) {
+        if (followSets[index][i].symbol == terminal) {
+            break;
+        }
+    }
+    if (i == numFollowSets[index]) {
+        followSets[index][i].symbol = terminal;
+        followSets[index][i].isTerminal = true;
+        numFollowSets[index]++;
+    }
+}
+
+void computeFirstSet() {
+    // Your logic to compute First sets goes here
+    // Iterate through the grammar rules and compute First sets for each non-terminal symbol
+    // Update the firstSets array accordingly
+}
+
+void computeFollowSet() {
+    // Your logic to compute Follow sets goes here
+    // Iterate through the grammar rules and compute Follow sets for each non-terminal symbol
+    // Update the followSets array accordingly
+}
+
+int main() {
+    printf("Enter the number of rules: ");
+    scanf("%d", &numRules);
+
+    printf("Enter the grammar rules (format: S->abc): \n");
+    for (int i = 0; i < numRules; ++i) {
+        scanf(" %c->%s", &rules[i].nonTerminal, rules[i].production);
+    }
+
+    // Initialize First and Follow sets
+    memset(numFirstSets, 0, sizeof(numFirstSets));
+    memset(numFollowSets, 0, sizeof(numFollowSets));
+
+    computeFirstSet();
+    computeFollowSet();
+
+    // Display First and Follow sets
+    // Display logic goes here
+
+    return 0;
 }
