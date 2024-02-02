@@ -1,77 +1,116 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-int k = 0, z = 0, i = 0, j = 0, c = 0;
-char a[16], ac[20], stk[15], act[10];
-void check();
-int main()
-{
-    puts("---GRAMMAR---\n E->E+E\n E->E*E\n E->(E)\n E->id");
-    puts("Enter input string:");
-    gets(a);
-    c = strlen(a);
-    strcpy(act, "SHIFT->");
-    puts("stack \t input \t action");
-    for (k = 0, i = 0; j < c; k++, i++, j++)
-    {
-        if (a[j] == 'i' && a[j + 1] == 'd')
-        {
-            stk[i] = a[j];
-            stk[i + 1] = a[j + 1];
-            stk[i + 2] = '\0';
-            a[j] = ' ';
-            a[j + 1] = ' ';
-            printf("\n$%s\t%s$\t%sid", stk, a, act);
-            check();
-        }
-        else
-        {
-            stk[i] = a[j];
-            stk[i + 1] = '\0';
-            a[j] = ' ';
-            printf("\n$%s\t%s$\t%ssymbols", stk, a, act);
-            check();
-        }
+#include <string.h>
+#include<ctype.h>
+#include<stdbool.h>
+
+
+
+#define MAX_RULES 10
+#define MAX_SYMBOLS 10
+#define MAX_STACK 100
+
+// Structure to represent a set of symbols
+typedef struct {
+    char symbols[MAX_SYMBOLS];
+    int count;
+} SymbolSet;
+
+// Structure to represent a production rule
+typedef struct {
+    char nonTerminal;
+    SymbolSet production;
+} Rule;
+
+// Function prototypes
+void initializeGrammar(Rule *rules, int *numRules);
+void printRules(Rule *rules, int numRules);
+bool shiftReduceParse(char *input, Rule *rules, int numRules);
+
+int main() {
+    int numRules;
+    Rule rules[MAX_RULES];
+    initializeGrammar(rules, &numRules);
+
+    char input[100];
+    printf("Enter the input string: ");
+    scanf("%s", input);
+
+    if (shiftReduceParse(input, rules, numRules)) {
+        printf("Accepted\n");
+    } else {
+        printf("Rejected\n");
+    }
+
+    return 0;
+}
+
+// Function to initialize grammar rules
+void initializeGrammar(Rule *rules, int *numRules) {
+    printf("Enter the number of rules: ");
+    scanf("%d", numRules);
+
+    printf("Enter the grammar rules:\n");
+    for (int i = 0; i < *numRules; i++) {
+        scanf(" %c -> %s", &rules[i].nonTerminal, rules[i].production.symbols);
+        rules[i].production.count = strlen(rules[i].production.symbols);
     }
 }
-void check()
-{
 
-    strcpy(ac, "REDUCE TO E");
+// Function to print grammar rules
+void printRules(Rule *rules, int numRules) {
+    for (int i = 0; i < numRules; i++) {
+        printf("%c -> %s\n", rules[i].nonTerminal, rules[i].production.symbols);
+    }
+}
 
-    for (z = 0; z < c; z++)
-        if (stk[z] == 'i' && stk[z + 1] == 'd')
-        {
-            stk[z] = 'E';
-            stk[z + 1] = '\0';
-            printf("\n$%s\t%s$\t%s", stk, a, ac);
-            j++;
+// Function to perform Shift-Reduce parsing
+bool shiftReduceParse(char *input, Rule *rules, int numRules) {
+    char stack[MAX_STACK];
+    int top = -1;
+    int inputIndex = 0;
+
+    // Push the start symbol onto the stack
+    stack[++top] = 'S'; // Assuming 'S' is the start symbol
+
+    while (top >= 0) {
+        // Print the current stack and input
+        printf("Stack: %s\tInput: %s\n", stack, &input[inputIndex]);
+
+        // Pop the top of the stack
+        char currentSymbol = stack[top--];
+
+        // If the current symbol is a terminal or matches the input, perform a shift
+        if (!isupper(currentSymbol) || currentSymbol == input[inputIndex]) {
+            if (currentSymbol == '\0') {
+                // Accept condition
+                return true;
+            }
+
+            // Move to the next input symbol
+            inputIndex++;
+        } else {
+            // If the current symbol is a non-terminal, find a matching production rule
+            int ruleIndex = -1;
+            for (int i = 0; i < numRules; i++) {
+                if (rules[i].nonTerminal == currentSymbol) {
+                    ruleIndex = i;
+                    break;
+                }
+            }
+
+            if (ruleIndex == -1) {
+                // No matching rule found, reject
+                return false;
+            }
+
+            // Reduce by replacing the non-terminal with its production in reverse order
+            for (int i = rules[ruleIndex].production.count - 1; i >= 0; i--) {
+                stack[++top] = rules[ruleIndex].production.symbols[i];
+            }
         }
-    for (z = 0; z < c; z++)
-        if (stk[z] == 'E' && stk[z + 1] == '+' && stk[z + 2] == 'E')
-        {
-            stk[z] = 'E';
-            stk[z + 1] = '\0';
-            stk[z + 2] = '\0';
-            printf("\n$%s\t%s$\t%s", stk, a, ac);
-            i = i - 2;
-        }
-    for (z = 0; z < c; z++)
-        if (stk[z] == 'E' && stk[z + 1] == '*' && stk[z + 2] == 'E')
-        {
-            stk[z] = 'E';
-            stk[z + 1] = '\0';
-            stk[z + 1] = '\0';
-            printf("\n$%s\t%s$\t%s", stk, a, ac);
-            i = i - 2;
-        }
-    for (z = 0; z < c; z++)
-        if (stk[z] == '(' && stk[z + 1] == 'E' && stk[z + 2] == ')')
-        {
-            stk[z] = 'E';
-            stk[z + 1] = '\0';
-            stk[z + 1] = '\0';
-            printf("\n$%s\t%s$\t%s", stk, a, ac);
-            i = i - 2;
-        }
+    }
+
+    // If the stack is empty and the input is fully processed, accept
+    return (stack[0] == '\0' && input[inputIndex] == '\0');
 }
